@@ -1,15 +1,16 @@
 // processing.queue.ts
 import { Queue } from 'bullmq';
+import { Redis } from 'ioredis';
 import { env } from '../../config/env.js';
 import { OPERATION_PROCESSING_QUEUE } from './processing.constants.js';
 import type { ProcessingJobData } from './processing.types.js';
 
-// We need an IORedis instance configuration. BullMQ can take a redis URL directly in newer versions or connection object.
-// We use a separate connection config for BullMQ as recommended to avoid blocking.
-const connection = {
-  url: env.REDIS_URL,
+// Upstash-friendly BullMQ connection config
+const connection = new Redis(env.REDIS_URL, {
   maxRetriesPerRequest: null,
-};
+  enableReadyCheck: false,
+  keepAlive: 10000,
+});
 
 export const processingQueue = new Queue<ProcessingJobData>(OPERATION_PROCESSING_QUEUE, {
   connection,

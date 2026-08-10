@@ -1,15 +1,17 @@
 // processing.worker.ts
 import { Worker, Job } from 'bullmq';
+import { Redis } from 'ioredis';
 import { env } from '../../config/env.js';
 import logger from '../../config/logger.js';
 import { OPERATION_PROCESSING_QUEUE } from './processing.constants.js';
 import type { ProcessingJobData } from './processing.types.js';
 import { executeProcessingJob, updateJobStatus } from './processing.service.js';
 
-const connection = {
-  url: env.REDIS_URL,
+const connection = new Redis(env.REDIS_URL, {
   maxRetriesPerRequest: null,
-};
+  enableReadyCheck: false,
+  keepAlive: 10000,
+});
 
 export const initProcessingWorker = () => {
   const worker = new Worker<ProcessingJobData>(

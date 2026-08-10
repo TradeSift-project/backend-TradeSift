@@ -21,7 +21,8 @@ export class AIClient {
 
     try {
       const controller = new AbortController();
-      // const timeoutId = setTimeout(() => controller.abort(), env.AI_BACKEND_TIMEOUT || DEFAULT_AI_TIMEOUT_MS);
+      const timeoutMs = env.AI_BACKEND_TIMEOUT || 60000; // 60 seconds default
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const formData = new FormData();
       formData.append('operationId', operationId);
@@ -76,7 +77,7 @@ export class AIClient {
         signal: controller.signal,
       });
 
-      // clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'No response body');
@@ -85,7 +86,25 @@ export class AIClient {
 
       const data = await response.json();
       logger.info({ operationId, data }, 'AI Backend extraction completed');
-      return data as AIExtractionResponse;
+      
+      // Map the single document response to our internal format
+      // Since the AI backend might not return our original documentId, 
+      // we'll map it to the first document we uploaded!
+      const originalDocId = documents[0]?.documentId || 'unknown';
+
+      const mappedResponse: AIExtractionResponse = {
+        status: data.status || 'completed',
+        documents: [
+          {
+            documentId: originalDocId,
+            documentType: data.extracted_data?.document_type || 'unknown',
+            confidence: 1.0, // default if not provided
+            fields: data.extracted_data || {},
+          }
+        ]
+      };
+
+      return mappedResponse;
 
     } catch (error: any) {
       logger.warn(
