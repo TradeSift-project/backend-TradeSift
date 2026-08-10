@@ -90,15 +90,16 @@ A chronological audit log of the operation retrieved via `activityService.getOpe
 | List Op Documents | `documentService.js` | `GET /operations/:id/documents` | - | `{ documents: [...] }` | **AVAILABLE** | |
 | Delete Document | `documentService.js` | `DELETE /documents/:id` | - | - | **AVAILABLE** | |
 | Global Docs History | `documentService.js` | `GET /documents` | `?search=&type=` | `{ documents: [...] }` | BACKEND TODO | Required for the global library view |
-| Document File URL | `documentService.js` | N/A (Storage) | - | Secure Cloudinary/S3 URL | BACKEND TODO | Previews currently mock/broken |
-| Start Processing | `processingService.js` | `POST /operations/:id/process` | - | `{ success }` | BACKEND TODO | Trigger AI pipeline |
-| Processing Status | `processingService.js` | `GET /operations/:id/processing-status`| - | `{ status, stages: [] }` | BACKEND TODO | Power the pipeline tracker |
-| Get Extraction | `reviewService.js` | `GET /documents/:id/extraction` | - | `{ fields: [], issues: [] }` | BACKEND TODO | Populates the Human Review screen |
-| Update Extraction | `reviewService.js` | `PATCH /documents/:id/extraction` | `{ fields: [...] }` | `{ success }` | BACKEND TODO | Saves operator corrections |
+| Document File URL | `documentService.js` | N/A (Storage) | - | Secure Cloudinary URL | **AVAILABLE** | Storage via Cloudinary |
+| Start Processing | `processingService.js` | `POST /operations/:id/process` | - | `{ success }` | **AVAILABLE** | Triggers BullMQ + AI |
+| Processing Status | `processingService.js` | `GET /operations/:id/processing-status`| - | `{ status, stages: [] }` | **AVAILABLE** | Powers the pipeline tracker |
+| Get Extraction | `reviewService.js` | `GET /operations/:id/extraction` | - | `{ data: [...] }` | **AVAILABLE** | Populates Human Review |
+| Update Extraction | `reviewService.js` | `PATCH /extractions/:id` | `{ editedFields: {...} }` | `{ success }` | **AVAILABLE** | Saves operator corrections |
 | Get Approved Data | `approvedDataService.js`| `GET /operations/:id/approved-data` | - | `{ referenceNo, ... }` | BACKEND TODO | The final operational payload |
-| Approve Operation | `approvedDataService.js`| `POST /operations/:id/approve` | - | `{ success }` | BACKEND TODO | Marks data as clean and finalized |
-| Export Data | `exportService.js` | `POST /operations/:id/export` | `{ type: 'EXCEL' }` | `{ downloadUrl }` | BACKEND TODO | Generate export |
+| Approve Extraction| `approvedDataService.js`| `POST /extractions/:id/approve` | - | `{ success }` | **AVAILABLE** | Marks data as clean |
+| Export Data | `exportService.js` | `POST /exports/:id/export` | `{ type: 'EXCEL' }` | Excel Buffer | **AVAILABLE** | Generate Excel export |
 | Activity Timeline | `activityService.js` | `GET /operations/:id/activity` | - | `{ activities: [] }` | BACKEND TODO | Chronological event history |
+| Dashboard Summary | `dashboardService.js` | `GET /dashboard/summary` | - | `{ stats, ... }` | **AVAILABLE** | High-level statistics |
 
 ---
 
@@ -139,15 +140,8 @@ When you complete the API on the backend, simply replace the `// MOCK RESPONSE` 
 
 ## 16. Missing Backend APIs
 - [ ] Global Documents Library (`GET /documents`)
-- [ ] Document Cloud Storage / Previews (Cloudinary/S3 Integration)
-- [ ] Pipeline Trigger (`POST /operations/:id/process`)
-- [ ] Pipeline Status Tracker (`GET /operations/:id/processing-status`)
-- [ ] Review Data Fetcher (`GET /documents/:id/extraction`)
-- [ ] Review Data Saver (`PATCH /documents/:id/extraction`)
-- [ ] Approved Data Fetcher (`GET /operations/:id/approved-data`)
-- [ ] Approve Action (`POST /operations/:id/approve`)
+- [ ] Get Approved Data Fetcher (`GET /operations/:id/approved-data`)
 - [ ] Mapping Configuration API
-- [ ] Export Generator (`POST /operations/:id/export`)
 - [ ] Activity Log Audit (`GET /operations/:id/activity`)
 
 ## 17. Existing Backend APIs (Integrated)
@@ -157,6 +151,14 @@ When you complete the API on the backend, simply replace the `// MOCK RESPONSE` 
 - [✓] Upload Documents to Operation (`POST /operations/:id/documents`)
 - [✓] List Operation Documents (`GET /operations/:id/documents`)
 - [✓] Delete Document (`DELETE /documents/:id`)
+- [✓] Document Cloud Storage / Previews (Cloudinary Integration)
+- [✓] Pipeline Trigger (`POST /operations/:id/process`)
+- [✓] Pipeline Status Tracker (`GET /operations/:id/processing-status`)
+- [✓] Review Data Fetcher (`GET /operations/:id/extraction`)
+- [✓] Review Data Saver (`PATCH /extractions/:id`)
+- [✓] Approve Extraction (`POST /extractions/:id/approve`)
+- [✓] Export Generator Excel (`POST /exports/:id/export`)
+- [✓] Dashboard Summary (`GET /dashboard/summary`)
 
 ## 18. Backend Implementation Guidance
 You are free to build the AI and processing engines however you see fit (Queues, Webhooks, Polling, CRONs). The frontend does not care *how* you process the documents. The frontend only cares that when it asks `GET /operations/:id/processing-status`, it receives a clear status, and when it asks for extraction data, it receives the normalized fields.

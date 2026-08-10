@@ -1551,7 +1551,7 @@ Response (200): Returns the rejected extraction object.
 
 ### 5. Export Extraction to Excel
 
-- Endpoint: `POST /api/extractions/:id/export`
+- Endpoint: `POST /api/exports/:id/export`
 - Auth: yes
 - Purpose: Generate and download an Excel workbook (`.xlsx`) containing the extraction's `editedFields` (falling back to `originalFields`).
 
@@ -1574,3 +1574,57 @@ Error responses:
 | 401 | Authentication required |
 | 404 | Extraction not found or parent operation does not belong to the user |
 | 409 | Extraction status is not `APPROVED` |
+
+---
+
+## G. Dashboard Module
+
+### 1. Get Dashboard Summary
+
+- Endpoint: `GET /api/dashboard/summary`
+- Auth: yes
+- Purpose: Retrieve high-level operational statistics, recent activity, and alerts for the user's dashboard.
+
+Response (200):
+
+```json
+{
+  "success": true,
+  "message": "Dashboard summary fetched.",
+  "data": {
+    "stats": {
+      "totalOperations": 10,
+      "pendingReview": 2,
+      "completedExports": 5,
+      "successRate": "95.0%"
+    },
+    "recentDocuments": [
+      {
+        "id": "string",
+        "name": "invoice.pdf",
+        "type": "Unknown",
+        "workflow": "Import Gate-In",
+        "processedAt": "string",
+        "status": "Verified",
+        "operationId": "string",
+        "reference": "string"
+      }
+    ],
+    "alerts": [
+      {
+        "id": "alert-review-123",
+        "title": "Operation INV-10001 requires review",
+        "action": "Review Required",
+        "type": "warning",
+        "operationId": "string"
+      }
+    ]
+  }
+}
+```
+
+Error responses:
+
+| Status | Reason |
+|--------|--------|
+| 401 | Authentication required |

@@ -224,8 +224,8 @@ Integrated the processing pipeline with the independent AI Backend microservice.
 1. Background worker calls `executeProcessingJob(userId, jobId)` inside `processing.service.ts`.
 2. Service transitions job to `PROCESSING` and fetches all document records.
 3. Service calls `AIClient.extractDocuments(documents)`.
-4. The `AIClient` attempts to reach `AI_BACKEND_URL`. If unavailable, times out, or fails, it logs a warning via Pino and returns a predictable mock response, completely hiding the failure from the frontend.
-5. The extracted data (real or mock) is passed to `ExtractionService.saveExtractions`, which persists it into the `Extraction` collection.
+4. The `AIClient` prepares a `FormData` payload containing the downloaded documents and sends it to the AI backend. It throws an error (`AIBackendError`) if the backend is unavailable or fails, propagating the failure up.
+5. The extracted data is passed to `ExtractionService.saveExtractions`, which persists it into the `Extraction` collection.
 6. Processing service marks the job `COMPLETED` and transitions the parent Operation to `REVIEW`.
 
 ---
@@ -288,7 +288,28 @@ Implemented the Excel Export module allowing users to manually download `APPROVE
 
 ---
 
-## 8. Future Phases & Next Steps
+## Phase 8: Dashboard Module (Post-Phase-7)
+
+**Status:** Completed
+**Completed:** August 2026
+
+**Summary:**
+Introduced the Dashboard module to provide a high-level operational summary for users on the frontend. It aggregates statistics across Operations, ProcessingJobs, and Documents.
+
+**Files Added:**
+- `src/modules/dashboard/*` (controller, service, routes)
+
+**Files Modified:**
+- `src/routes/index.ts` (Mounted the dashboard routes onto `/api/dashboard`)
+
+**Architecture & Lifecycle:**
+1. **Aggregated Stats:** Calculates total operations, pending reviews, completed exports, and a processing success rate percentage.
+2. **Recent Activity:** Retrieves the 5 most recent documents with context about their parent operation type.
+3. **Alerts Generation:** Dynamically generates alerts for operations needing review, failed processing jobs, and failed document uploads to prompt user action.
+
+---
+
+## 9. Future Phases & Next Steps
 
 - **Audit Logging:** Every operation mutation (create, update, delete) will eventually emit an audit event.
 - **Soft Deletes:** Implement an ADR-compliant deletion policy (adding `deletedAt` and background cron cleanup).
