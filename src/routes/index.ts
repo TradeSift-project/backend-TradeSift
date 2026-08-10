@@ -14,7 +14,7 @@ router.use('/users', userRoutes);
 router.use('/operations', operationRoutes);
 router.use('/documents', documentRoutes);
 router.use('/extractions', extractionRoutes);
-router.use('/extractions', exportRoutes);
+router.use('/exports', exportRoutes);
 router.use('/dashboard', dashboardRoutes);
 
 export default router;
