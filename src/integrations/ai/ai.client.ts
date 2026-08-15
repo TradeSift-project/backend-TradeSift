@@ -20,20 +20,19 @@ export class AIClient {
     }
 
     try {
-      const controller = new AbortController();
-      const timeoutMs = env.AI_BACKEND_TIMEOUT || 60000; // 60 seconds default
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const timeoutMs = env.AI_BACKEND_TIMEOUT || 180000; // 3 minutes default
 
-      const formData = new FormData();
-      formData.append('operationId', operationId);
+      // The Python backend `/extract` endpoint currently only accepts a single file at a time.
+      // So we must iterate over the documents and make concurrent requests.
+      const extractionPromises = documents.map(async (doc) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      // Download each file and append to FormData
-      for (const doc of documents) {
         try {
+          // 1. Fetch file from storage
           const fileResponse = await fetch(doc.url);
           if (!fileResponse.ok) {
-            logger.warn({ documentId: doc.documentId, url: doc.url }, 'Failed to fetch document for AI extraction');
-            continue;
+            throw new Error(`Failed to fetch document ${doc.documentId} from storage`);
           }
           const blob = await fileResponse.blob();
 
@@ -45,7 +44,6 @@ export class AIClient {
           } else if (blob.type === 'image/png') {
             extension = '.png';
           } else {
-            // Fallback to extracting from URL if content-type is generic
             const match = doc.url.split('?')[0]?.match(/\.(pdf|jpg|jpeg|png)$/i);
             if (match) {
               extension = match[0].toLowerCase();
@@ -54,54 +52,59 @@ export class AIClient {
 
           const filename = `${doc.documentId}${extension}`;
 
-          // Append with 'file' as the field name, as expected by the AI backend
+          // 2. Prepare FormData for this single document
+          const formData = new FormData();
+          formData.append('operationId', operationId);
           formData.append('file', blob, filename);
-          logger.info({ documentId: doc.documentId }, 'Document fetched successfully');
-        } catch (fetchErr: any) {
-          logger.error({ documentId: doc.documentId, error: fetchErr.message }, 'Error fetching document from storage');
+
+          const headers: Record<string, string> = {};
+          if (env.AI_BACKEND_API_KEY) {
+            headers['Authorization'] = `Bearer ${env.AI_BACKEND_API_KEY}`;
+          }
+
+          // 3. Send to Python AI Engine
+          const response = await fetch(`${env.AI_BACKEND_URL}/extract`, {
+            method: 'POST',
+            headers,
+            body: formData,
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const errorText = await response.text().catch(() => 'No response body');
+            throw new AIBackendError(`Status: ${response.status} ${response.statusText}. Body: ${errorText}`);
+          }
+
+          const data = await response.json();
+          
+          return {
+            documentId: doc.documentId,
+            documentType: data.extracted_data?.document_type || data.auto_classified_as || 'unknown',
+            confidence: 1.0, 
+            fields: data.extracted_data || {},
+          };
+
+        } catch (err: any) {
+          clearTimeout(timeoutId);
+          logger.error({ documentId: doc.documentId, error: err.message }, 'Failed to extract single document');
+          // Return a placeholder for failed documents so we don't fail the entire batch
+          return {
+            documentId: doc.documentId,
+            documentType: 'unknown',
+            confidence: 0.0,
+            fields: {},
+          };
         }
-      }
-
-      const headers: Record<string, string> = {};
-
-      if (env.AI_BACKEND_API_KEY) {
-        headers['Authorization'] = `Bearer ${env.AI_BACKEND_API_KEY}`;
-      }
-      // Note: We do NOT set 'Content-Type': 'multipart/form-data'. 
-      // fetch automatically sets it along with the correct boundary when the body is FormData.
-
-      const response = await fetch(`${env.AI_BACKEND_URL}/extract`, {
-        method: 'POST',
-        headers,
-        body: formData,
-        signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'No response body');
-        throw new AIBackendError(`AI Backend responded with status: ${response.status} ${response.statusText}. Body: ${errorText}`);
-      }
-
-      const data = await response.json();
-      logger.info({ operationId, data }, 'AI Backend extraction completed');
-      
-      // Map the single document response to our internal format
-      // Since the AI backend might not return our original documentId, 
-      // we'll map it to the first document we uploaded!
-      const originalDocId = documents[0]?.documentId || 'unknown';
+      const extractedDocuments = await Promise.all(extractionPromises);
+      logger.info({ operationId, count: extractedDocuments.length }, 'AI Backend batch extraction completed');
 
       const mappedResponse: AIExtractionResponse = {
-        status: data.status || 'completed',
-        documents: [
-          {
-            documentId: originalDocId,
-            documentType: data.extracted_data?.document_type || 'unknown',
-            confidence: 1.0, // default if not provided
-            fields: data.extracted_data || {},
-          }
-        ]
+        status: 'completed',
+        documents: extractedDocuments
       };
 
       return mappedResponse;

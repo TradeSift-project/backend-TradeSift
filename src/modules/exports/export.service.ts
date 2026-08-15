@@ -24,8 +24,11 @@ export const exportExtractionToExcel = async (
     throw new ApiError(409, 'Only APPROVED extractions can be exported.');
   }
 
-  // Use editedFields, fallback to originalFields. Type assert to Record<string, any>
-  const exportData = (extraction.editedFields || extraction.originalFields) as Record<string, any>;
+  // Use originalFields and override with any editedFields
+  const exportData = {
+    ...((extraction.originalFields || {}) as Record<string, any>),
+    ...((extraction.editedFields || {}) as Record<string, any>)
+  };
 
   // Generate the workbook
   const buffer = await generateExtractionWorkbook({ fields: exportData });
@@ -66,11 +69,17 @@ export const exportOperationToExcel = async (
   if (approvedExtractions.length === 1) {
     const ext = approvedExtractions[0];
     if (ext) {
-      exportData = (ext.editedFields || ext.originalFields) as Record<string, any>;
+      exportData = {
+        ...((ext.originalFields || {}) as Record<string, any>),
+        ...((ext.editedFields || {}) as Record<string, any>)
+      };
     }
   } else {
     approvedExtractions.forEach((ext, i) => {
-      const data = (ext.editedFields || ext.originalFields) as Record<string, any>;
+      const data = {
+        ...((ext.originalFields || {}) as Record<string, any>),
+        ...((ext.editedFields || {}) as Record<string, any>)
+      };
       exportData[`Document_${i + 1}_${ext.documentType}`] = data;
     });
   }
