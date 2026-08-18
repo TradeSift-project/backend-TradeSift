@@ -16,10 +16,10 @@ import logger from  '../../config/logger.js';
 
 export const getMe = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    
+    logger.info({ userId: req.userId }, "Checking user ID......");
     if (!req.userId) {
-      logger.info({ userId: req.userId }, "ID not found");
       throw new ApiError(401, "Authentication required.");
+      logger.error("Id not found.")
     }
     const user = await getUserProfile(req.userId);
     res.status(200).json(new ApiResponse('Profile fetched.', user));
