@@ -173,6 +173,11 @@ export const googleAuthCallback = async (
     setAccessTokenCookie(res, accessToken);
     setRefreshTokenCookie(res, refreshToken);
 
+    logger.info({
+      accessToken,
+      refreshToken
+    }, "Token initialised")
+
 
     // res.status(200).json(new ApiResponse('Login successful.', { user: user }));
     return res.redirect(`${env.FRONTEND_URL}/dashboard`);
