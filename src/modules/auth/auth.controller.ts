@@ -32,7 +32,7 @@ import type {
 } from './auth.schema.js';
 import { clearAuthCookies, setAccessTokenCookie, setRefreshTokenCookie, setTrustedDeviceCookie } from '../../utils/cookies.js';
 import { ApiError } from '../../common/ApiError.js';
-import logger from './config/logger.js';
+import logger from '../../config/logger.js';
 import { env } from '../../config/env.js';
 import { log } from 'node:console';
 
