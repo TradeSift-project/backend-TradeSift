@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt.js';
 import { ApiError } from '../common/ApiError.js';
-import logger from '../../config/logger.js';
+import logger from '../config/logger.js';
 
 export interface AuthenticatedRequest extends Request {
   userId?: string;
