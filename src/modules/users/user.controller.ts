@@ -12,10 +12,12 @@ import {
   deleteAllUsersData,
 } from './user.service.js';
 import { ApiError } from '../../common/ApiError.js';
+import logger from  "../../config/logger.js;
 
 export const getMe = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.userId) throw new ApiError(401, 'Authentication required.');
+    logger.error({req.userId}, "ID not found");
     const user = await getUserProfile(req.userId);
     res.status(200).json(new ApiResponse('Profile fetched.', user));
   } catch (err) {
