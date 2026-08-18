@@ -15,7 +15,8 @@ const transporter = nodemailer.createTransport({
   connectionTimeout: 10_000,
   greetingTimeout: 10_000,
   socketTimeout: 10_000,
-} satisfies nodemailer.TransportOptions & { host: string; port: number; secure: boolean; family: number });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any);
 
 export const sendMail = async (to: string, subject: string, html: string): Promise<void> => {
   try {
