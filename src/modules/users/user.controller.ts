@@ -18,8 +18,8 @@ export const getMe = async (req: AuthenticatedRequest, res: Response, next: Next
   try {
     
     if (!req.userId) {
-      logger.info({req.userId}, "ID not found");
-      throw new ApiError(401, 'Authentication required.');
+      logger.info({ userId: req.userId }, "ID not found");
+      throw new ApiError(401, "Authentication required.");
     }
     const user = await getUserProfile(req.userId);
     res.status(200).json(new ApiResponse('Profile fetched.', user));
